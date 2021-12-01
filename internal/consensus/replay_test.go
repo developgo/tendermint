@@ -349,7 +349,11 @@ func setupSimulator(ctx context.Context, t *testing.T) *simulatorTestSuite {
 	partSize := types.BlockPartSizeBytes
 
 	newRoundCh := subscribe(ctx, t, css[0].eventBus, types.EventQueryNewRound)
-	proposalCh := subscribe(ctx, t, css[0].eventBus, types.EventQueryCompleteProposal)
+	proposalChecker := eventChecker{
+		ctx: ctx,
+		t:   t,
+		ch:  subscribe(ctx, t, css[0].eventBus, types.EventQueryCompleteProposal),
+	}
 
 	vss := make([]*validatorStub, nPeers)
 	for i := 0; i < nPeers; i++ {
