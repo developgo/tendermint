@@ -551,7 +551,7 @@ type eventChecker struct {
 	timeout time.Duration
 }
 
-func (ec eventChecker) ensureProposal(height int64, round int32, propID types.BlockID) {
+func (ec eventChecker) ensureMatchingProposal(height int64, round int32, propID types.BlockID) {
 	ec.t.Helper()
 	select {
 	case <-time.After(ensureTimeout):
@@ -757,8 +757,7 @@ func (ec eventChecker) ensurePrevote(height int64, round int32) {
 	ec.ensureVote(height, round, tmproto.PrevoteType)
 }
 
-func (ec eventChecker) ensureVote(height int64, round int32,
-	voteType tmproto.SignedMsgType) {
+func (ec eventChecker) ensureVote(height int64, round int32, voteType tmproto.SignedMsgType) {
 	ec.t.Helper()
 	to := ec.timeout
 	if to == 0 {
@@ -783,32 +782,6 @@ func (ec eventChecker) ensureVote(height int64, round int32,
 		if vote.Type != voteType {
 			ec.t.Fatalf("expected type %v, got %v", voteType, vote.Type)
 		}
-	}
-}
-
-func (ec eventChecker) ensurePrecommitTimeout() {
-	ec.t.Helper()
-	to := ec.timeout
-	if to == 0 {
-		to = ensureTimeout
-	}
-	select {
-	case <-time.After(to):
-		ec.t.Fatalf("Timeout expired while waiting for the Precommit to Timeout")
-	case <-ec.ch:
-	}
-}
-
-func (ec eventChecker) ensureNewRoundStateOnChannel() {
-	ec.t.Helper()
-	to := ec.timeout
-	if to == 0 {
-		to = ensureTimeout
-	}
-	select {
-	case <-time.After(to):
-		ec.t.Fatalf("Timeout expired while waiting for new activity on the channel")
-	case <-ec.ch:
 	}
 }
 

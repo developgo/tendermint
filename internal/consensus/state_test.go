@@ -294,7 +294,7 @@ func TestStateBadProposal(t *testing.T) {
 	startTestRound(ctx, cs1, height, round)
 
 	// wait for proposal
-	proposalChecker.ensureProposal(height, round, blockID)
+	proposalChecker.ensureMatchingProposal(height, round, blockID)
 
 	// wait for prevote
 	voteChecker.ensurePrevote(height, round)

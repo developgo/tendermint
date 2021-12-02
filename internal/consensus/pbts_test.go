@@ -128,7 +128,7 @@ func (p *pbtsTestHarness) genesisHeight() heightResult {
 	p.roundChecker.ensureNewRound(p.currentHeight, p.currentRound)
 	propBlock, partSet := p.observedState.createProposalBlock()
 	bid := types.BlockID{Hash: propBlock.Hash(), PartSetHeader: partSet.Header()}
-	p.proposalChecker.ensureProposal(p.currentHeight, p.currentRound, bid)
+	p.proposalChecker.ensureMatchingProposal(p.currentHeight, p.currentRound, bid)
 	p.voteChecker.ensurePrevote(p.currentHeight, p.currentRound)
 	signAddVotes(p.ctx, p.observedState, tmproto.PrevoteType, p.chainID, bid, p.otherValidators...)
 
@@ -174,7 +174,7 @@ func (p *pbtsTestHarness) nextHeight(proposer types.PrivValidator, deliverTime, 
 	if err := p.observedState.SetProposalAndBlock(prop, b, ps, "peerID"); err != nil {
 		p.t.Fatal(err)
 	}
-	p.proposalChecker.ensureProposal(p.currentHeight, 0, bid)
+	p.proposalChecker.ensureMatchingProposal(p.currentHeight, 0, bid)
 
 	p.voteChecker.ensurePrevote(p.currentHeight, p.currentRound)
 	signAddVotes(p.ctx, p.observedState, tmproto.PrevoteType, p.chainID, bid, p.otherValidators...)
