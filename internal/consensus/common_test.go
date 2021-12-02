@@ -551,7 +551,28 @@ type eventChecker struct {
 	timeout time.Duration
 }
 
-func ensureNewProposal() {}
+func (ec eventChecker) ensureProposal(height int64, round int32, propID types.BlockID) {
+	ec.t.Helper()
+	select {
+	case <-time.After(ensureTimeout):
+		ec.t.Fatalf("Timeout expired while waiting for NewProposal event")
+	case msg := <-ec.ch:
+		proposalEvent, ok := msg.Data().(types.EventDataCompleteProposal)
+		if !ok {
+			ec.t.Fatalf("expected a EventDataCompleteProposal, got %T. Wrong subscription channel?",
+				msg.Data())
+		}
+		if proposalEvent.Height != height {
+			ec.t.Fatalf("expected height %v, got %v", height, proposalEvent.Height)
+		}
+		if proposalEvent.Round != round {
+			ec.t.Fatalf("expected round %v, got %v", round, proposalEvent.Round)
+		}
+		if !proposalEvent.BlockID.Equals(propID) {
+			ec.t.Fatalf("Proposed block does not match expected block (%v != %v)", proposalEvent.BlockID, propID)
+		}
+	}
+}
 
 func (ec eventChecker) ensureNewProposal(height int64, round int32) {
 	ec.t.Helper()
@@ -600,6 +621,18 @@ func (ec eventChecker) ensureNewRound(height int64, round int32) {
 	}
 }
 
+func (ec eventChecker) ensureNewEvent() {
+	ec.t.Helper()
+	to := ec.timeout
+	if to == 0 {
+		to = ensureTimeout
+	}
+	select {
+	case <-time.After(to):
+		ec.t.Fatal("timeout occured while waiting for event")
+	case <-ec.ch:
+	}
+}
 func (ec eventChecker) ensureNoNewEvent(errorMessage string) {
 	ec.t.Helper()
 	to := ec.timeout
@@ -614,7 +647,7 @@ func (ec eventChecker) ensureNoNewEvent(errorMessage string) {
 	}
 }
 
-func (ec eventChecker) ensureNoNewRoundStep(t *testing.T, stepCh <-chan tmpubsub.Message) {
+func (ec eventChecker) ensureNoNewRoundStep() {
 	ec.t.Helper()
 	ec.ensureNoNewEvent("We should be stuck waiting, not receiving NewRoundStep event")
 }
@@ -624,7 +657,7 @@ func (ec eventChecker) ensureNoNewTimeout() {
 	ec.ensureNoNewEvent("We should be stuck waiting, not receiving NewTimeout event")
 }
 
-func (ec eventChecker) ensureNewEvent(height int64, round int32, errorMessage string) { // nolint: lll
+func (ec eventChecker) ensureNewRoundState(height int64, round int32, errorMessage string) { // nolint: lll
 	ec.t.Helper()
 	to := ec.timeout
 	if to == 0 {
@@ -650,12 +683,12 @@ func (ec eventChecker) ensureNewEvent(height int64, round int32, errorMessage st
 
 func (ec eventChecker) ensureNewTimeout(height int64, round int32) {
 	ec.t.Helper()
-	ec.ensureNewEvent(height, round, "Timeout expired while waiting for NewTimeout event")
+	ec.ensureNewRoundState(height, round, "Timeout expired while waiting for NewTimeout event")
 }
 
 func (ec eventChecker) ensureNewValidBlock(height int64, round int32) {
 	ec.t.Helper()
-	ec.ensureNewEvent(height, round, "Timeout expired while waiting for NewValidBlock event")
+	ec.ensureNewRoundState(height, round, "Timeout expired while waiting for NewValidBlock event")
 }
 
 func (ec eventChecker) ensureNewBlock(height int64) {
@@ -706,12 +739,12 @@ func (ec eventChecker) ensureNewBlockHeader(height int64, blockHash tmbytes.HexB
 
 func (ec eventChecker) ensureLock(height int64, round int32) {
 	ec.t.Helper()
-	ec.ensureNewEvent(height, round, "Timeout expired while waiting for LockValue event")
+	ec.ensureNewRoundState(height, round, "Timeout expired while waiting for LockValue event")
 }
 
 func (ec eventChecker) ensureRelock(height int64, round int32) {
 	ec.t.Helper()
-	ec.ensureNewEvent(height, round, "Timeout expired while waiting for RelockValue event")
+	ec.ensureNewRoundState(height, round, "Timeout expired while waiting for RelockValue event")
 }
 
 func (ec eventChecker) ensurePrecommit(height int64, round int32) {
@@ -766,7 +799,7 @@ func (ec eventChecker) ensurePrecommitTimeout() {
 	}
 }
 
-func (ec eventChecker) ensureNewEventOnChannel() {
+func (ec eventChecker) ensureNewRoundStateOnChannel() {
 	ec.t.Helper()
 	to := ec.timeout
 	if to == 0 {
